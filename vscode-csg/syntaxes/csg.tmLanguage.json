@@ -1,0 +1,23 @@
+{
+  "scopeName": "source.csg",
+  "name": "CSG",
+  "patterns": [
+    { "name": "comment.line.csg", "match": "(?:^|(?<=\\s))(?:#|--(?=\\s|$)).*$" },
+    { "match": "^\\s*(%start|%heads)\\b",
+      "captures": { "1": { "name": "keyword.control.directive.csg" } } },
+    { "name": "keyword.operator.arrow.csg", "match": "(?<=^|\\s)(?:->|→|::=)(?=\\s|$)" },
+    { "name": "keyword.operator.alternative.csg", "match": "(?<=^|\\s)\\|" },
+    { "name": "constant.language.epsilon.csg", "match": "(?<=^|\\s)(?:ε|eps|epsilon)(?=\\s|$)" },
+    { "comment": "an item made only of terminal characters is a run of terminals",
+      "match": "(?<=^|\\s)(?:/\\\\|\\\\/|[~¬∧∨⊤⊥TFx01()])+(?=\\s|$)",
+      "captures": { "0": { "patterns": [
+        { "name": "keyword.operator.logical.csg", "match": "/\\\\|\\\\/|[~¬∧∨]" },
+        { "name": "constant.language.boolean.csg", "match": "[TF⊤⊥]" },
+        { "name": "variable.other.terminal.csg", "match": "x[01]*" },
+        { "name": "constant.numeric.bit.csg", "match": "[01]+" },
+        { "name": "punctuation.parenthesis.csg", "match": "[()]" }
+      ] } } },
+    { "comment": "anything else is a nonterminal",
+      "name": "entity.name.type.nonterminal.csg", "match": "(?<=^|\\s)[^\\s|]+" }
+  ]
+}

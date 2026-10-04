@@ -1,0 +1,20 @@
+
+S  → Ft
+Ft → (Ft ∧ Ft)
+  | (Ft ∨ A)
+  | (A ∨ Ft)
+  | ~ (Ff)
+  | ⊤
+  | V α
+Ff → (Ff ∨ Ff)
+  | (Ff ∧ A)
+  | (A ∧ Ff)
+  | ~ (Ft)
+  | ⊥
+  | V ω
+A  → Ft | Ff | V φ
+V → x | x V
+
+α → x
+ω → x
+φ → x

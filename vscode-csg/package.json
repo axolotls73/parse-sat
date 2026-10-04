@@ -1,0 +1,25 @@
+{
+  "name": "csg-grammar",
+  "displayName": "CSG grammar files",
+  "description": "Syntax highlighting for csg.py grammar files",
+  "version": "0.0.3",
+  "publisher": "local",
+  "engines": { "vscode": "^1.60.0" },
+  "categories": ["Programming Languages"],
+  "contributes": {
+    "configurationDefaults": {
+      "[csg]": { "editor.unicodeHighlight.ambiguousCharacters": false }
+    },
+    "languages": [{
+      "id": "csg",
+      "aliases": ["CSG", "csg"],
+      "extensions": [".grammar", ".csg"],
+      "configuration": "./language-configuration.json"
+    }],
+    "grammars": [{
+      "language": "csg",
+      "scopeName": "source.csg",
+      "path": "./syntaxes/csg.tmLanguage.json"
+    }]
+  }
+}

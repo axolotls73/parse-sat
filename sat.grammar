@@ -1,0 +1,260 @@
+-- this grammar generates all SAT formulas
+-- (modulo some annoying parentheses stuff)
+
+-- first all the context free stuff to generate formulas we can check
+
+-- my beautiful stupid hack. we can't remove $ and E once we finish
+-- processing, but we can turn them both into parentheses!
+-- need 2 extra at the beginning to balance them out
+S  →  (( $ Ft E
+-- Ft: formula that must evaluate to ⊤
+Ft → (Ft ∧ Ft)
+  | (Ft ∨ Fa)
+  | (Fa ∨ Ft)
+  | ¬ (Ff)
+  | ⊤
+  | α V -- variable that must be true
+-- Ff: formula that must evaluate to ⊥
+Ff → (Ff ∨ Ff)
+  | (Ff ∧ Fa)
+  | (Fa ∧ Ff)
+  | ¬ (Ft)
+  | ⊥
+  | ω V -- variable that must be false
+-- Fa: formula that can evaluate to anything
+Fa → Ft | Ff | φ V -- variable that can be anything
+V → Xu | Xu V -- Xu: x unchecked since we haven't processed these yet
+
+-- important for these guys: we CAN'T skip Ft, Ff, Fa, or V! we want those to
+--  be stuck until they finish generating!
+
+-- $ is our outer loop that goes through the whole string once:
+-- for each variable, bring our tag and check consistency with all remaining variables
+
+-- skip terminals, and xs we're done processing
+$ ( → ( $
+$ ) → ) $
+$ ¬ → ¬ $
+$ ∧ → ∧ $
+$ ∨ → ∨ $
+$ ⊤ → ⊤ $
+$ ⊥ → ⊥ $
+$ x → x $
+
+-- see a tag: beginning of our variable name, and the start of our inner loop
+$ α Xu → $ α XLcα
+$ ω Xu → $ ω XLcω
+
+-- if the tag is φ, it can't conflict with anything, so we can skip this variable
+$ φ → x $s
+$s Xu → x $s
+-- stuff in Follow(Xu): we're exiting the variable we've skipped
+$s ∧ → ∧ $
+$s ∨ → ∨ $
+$s ) → ) $
+$s E → $ E -- end of string, what we would've gotten anyway
+
+-- Xc: x in our current variable
+XLcα Xu → Xc XLcα
+XLcω Xu → Xc XLcω
+
+-- hit the end of the string before finding another variable, done!
+XLcα E → XLD E
+XLcω E → XLD E
+
+-- stuff in Follow(Xu): we're exiting our variable name and looking for others
+XLcα ∧ → ∧ XLα
+XLcα ∨ → ∨ XLα
+XLcα ) → ) XLα
+XLcω ∧ → ∧ XLω
+XLcω ∨ → ∨ XLω
+XLcω ) → ) XLω
+
+-- skip terminals, current xs, xs we've matched
+-- can't just skip tags, because they could be the start of an unmatched variable
+XLα ( → ( XLα
+XLα ) → ) XLα
+XLα ¬ → ¬ XLα
+XLα ∧ → ∧ XLα
+XLα ∨ → ∨ XLα
+XLα ⊤ → ⊤ XLα
+XLα ⊥ → ⊥ XLα
+XLα Xc → Xc XLα
+XLα Xm → Xm XLα
+XLα α Xm → α Xm XLα
+XLα ω Xm → ω Xm XLα
+XLα φ Xm → φ Xm XLα
+XLω ( → ( XLω
+XLω ) → ) XLω
+XLω ¬ → ¬ XLω
+XLω ∧ → ∧ XLω
+XLω ∨ → ∨ XLω
+XLω ⊤ → ⊤ XLω
+XLω ⊥ → ⊥ XLω
+XLω Xc → Xc XLω
+XLω Xm → Xm XLω
+XLω α Xm → α Xm XLω
+XLω ω Xm → ω Xm XLω
+XLω φ Xm → φ Xm XLω
+
+-- see another variable! first we check for conflict. if no conflict, we
+-- don't need to compare variable names
+XLα α Xu → α Xm XLαs
+XLα φ Xu → φ Xm XLαs
+XLω ω Xu → ω Xm XLωs
+XLω φ Xu → φ Xm XLωs
+-- just skip past all of our Xus
+XLαs Xu → Xm XLαs
+XLωs Xu → Xm XLωs
+-- end skip
+XLαs ∧ → ∧ XLα
+XLαs ∨ → ∨ XLα
+XLαs ) → ) XLα
+XLωs ∧ → ∧ XLω
+XLωs ∨ → ∨ XLω
+XLωs ) → ) XLω
+-- end skip and end string
+XLωs E → XLD E
+XLαs E → XLD E
+
+-- see another variable, and there's a conflict! now we need to check
+-- whether it's the same variable, and get stuck if so
+XLω α Xu Xu → XLra α Xm Xu
+XLα ω Xu Xu → XLra ω Xm Xu
+-- just x case
+XLω α Xu ∧ → XLre α Xm ∧
+XLω α Xu ∨ → XLre α Xm ∨
+XLω α Xu ) → XLre α Xm )
+XLα ω Xu ∧ → XLre ω Xm ∧
+XLα ω Xu ∨ → XLre ω Xm ∨
+XLα ω Xu ) → XLre ω Xm )
+
+-- now we just carry xs back and forth until we've counted all of them!
+-- XLra goes back if there are characters remaining, XLre if not.
+-- we could reuse XLα and XLω to go forward while counting to avoid more rules, but
+-- i'm not keeping track of tags and don't want to overload stuff, so XLn for that case
+
+-- skip forward to the next Xu of the variable we're matching
+XLn ( → ( XLn
+XLn ) → ) XLn
+XLn ¬ → ¬ XLn
+XLn ∧ → ∧ XLn
+XLn ∨ → ∨ XLn
+XLn ⊤ → ⊤ XLn
+XLn ⊥ → ⊥ XLn
+XLn α → α XLn
+XLn ω → ω XLn
+XLn φ → φ XLn
+XLn Xm → Xm XLn
+XLn Xcm → Xcm XLn
+
+-- we're currently counting this variable, go another round
+XLn Xu Xu → XLra Xm Xu
+
+-- we're done counting, go back with XLre
+XLn Xu ∧ → XLre Xm ∧
+XLn Xu ∨ → XLre Xm ∨
+XLn Xu ) → XLre Xm )
+XLn Xu E → XLre Xm E
+
+-- skip back! we can hit both Xm and Xcm
+( XLra → XLra (
+) XLra → XLra )
+¬ XLra → XLra ¬
+∧ XLra → XLra ∧
+∨ XLra → XLra ∨
+⊤ XLra → XLra ⊤
+⊥ XLra → XLra ⊥
+Xm XLra → XLra Xm
+Xcm XLra → XLra Xcm
+α XLra → XLra α
+ω XLra → XLra ω
+φ XLra → XLra φ
+( XLre → XLre (
+) XLre → XLre )
+¬ XLre → XLre ¬
+∧ XLre → XLre ∧
+∨ XLre → XLre ∨
+⊤ XLre → XLre ⊤
+⊥ XLre → XLre ⊥
+Xm XLre → XLre Xm
+Xcm XLre → XLre Xcm
+α XLre → XLre α
+ω XLre → XLre ω
+φ XLre → XLre φ
+
+-- possibilities at this point:
+-- send back XLre
+--   no remaining Xc in original -> error!
+--   remaining Xc in original -> ok! don't need to Xm match string, do need
+--     to Xc original
+-- send back XLra
+--   no remaining Xc in original -> ok! need to Xm match string
+--   remaining Xc in original -> keep going
+-- in order below:
+
+-- strings same length, conflict! representing errors as a special nonterminal with no rules
+$ α XLre → $ α ERR!
+$ ω XLre → $ ω ERR!
+
+-- original string longer, send back to grab tag and then keep looking with XLα/XLω
+Xc XLre → XLb Xc
+Xc XLb → XLb Xc
+$ α XLb → $ α XLα
+$ ω XLb → $ ω XLω
+
+-- match string longer, we can just change to XLα/XLω and reset match later
+$ α XLra → $ α XLα
+$ ω XLra → $ ω XLω
+
+-- keep going case
+Xc XLra → Xcm XLn
+
+-- adding a couple things to XLα/XLω to repurpose it for resetting stuff:
+-- we can reset partially matched match variables (that were longer) with this guy
+-- because we know we'll only hit this rule when we're already in the middle of a variable
+XLα Xu → Xm XLα
+XLω Xu → Xm XLω
+-- also reset matches on our current variable after failed match
+XLα Xcm → Xc XLα
+XLω Xcm → Xc XLω
+
+-- our inner loop reached the end of the string!
+-- send it all the way back! (XLD: x loop done)
+XLα E → XLD E
+XLω E → XLD E
+
+-- skip back! we won't see Xu or Xcm
+( XLD → XLD (
+) XLD → XLD )
+¬ XLD → XLD ¬
+∧ XLD → XLD ∧
+∨ XLD → XLD ∨
+⊤ XLD → XLD ⊤
+⊥ XLD → XLD ⊥
+-- need to reset matches, and say we're done with current
+Xm XLD → XLD Xu
+Xc XLD → XLD x
+-- skip tags, need Xu to distinguish from current tag case below
+α XLD Xu → XLD α Xu
+ω XLD Xu → XLD ω Xu
+φ XLD Xu → XLD φ Xu
+-- current tags just get replaced with x. every variable just goes from
+-- x_n to x_(n+1) which is fine
+α XLD x → XLD x x
+ω XLD x → XLD x x
+φ XLD x → XLD x x
+-- the one x variable case
+α XLD ∧ → XLD x ∧
+α XLD ∨ → XLD x ∨
+α XLD ) → XLD x )
+α XLD E → XLD x E
+ω XLD ∧ → XLD x ∧
+ω XLD ∨ → XLD x ∨
+ω XLD ) → XLD x )
+ω XLD E → XLD x E
+-- back to the start, done now!
+$ XLD → $ x
+
+-- we're finally done! :D
+$ E → ))
